@@ -1,0 +1,7 @@
+openai-whisper
+torch
+ffmpeg-python
+python-dotenv
+pydub
+numpy
+moviepy
