@@ -4,6 +4,9 @@ import os
 import sys
 import threading
 import json
+import webbrowser
+import time
+import platform
 
 # Adiciona config ao path
 sys.path.insert(0, '../config')
@@ -80,22 +83,31 @@ def browse_files():
         if not current_path:
             current_path = str(Path.home())
         
+        # Segurança: evita caminhos Linux no Windows
+        # Se for um caminho Linux (/home/...) no Windows, usa o home do usuário
+        if platform.system() == 'Windows' and current_path.startswith('/'):
+            print(f"⚠️ Caminho Linux detectado no Windows: {current_path}")
+            print(f"   Usando diretório do usuário: {Path.home()}")
+            current_path = str(Path.home())
+        
         # Segurança: evita subir além do home
         try:
             current_path = Path(current_path).expanduser().resolve()
             print(f"Caminho resolvido: {current_path}")
         except Exception as e:
             print(f"Erro ao resolver caminho: {e}")
-            return jsonify({"error": f"Caminho inválido: {str(e)}"}), 400
+            print(f"   Usando diretório padrão: {Path.home()}")
+            current_path = Path.home().resolve()
         
         # Verifica se existe
         if not current_path.exists():
             print(f"Caminho não existe: {current_path}")
-            return jsonify({"error": f"Diretório não encontrado: {current_path}"}), 404
+            print(f"   Usando diretório padrão: {Path.home()}")
+            current_path = Path.home().resolve()
         
         if not current_path.is_dir():
             print(f"Caminho não é diretório: {current_path}")
-            return jsonify({"error": f"Caminho não é um diretório: {current_path}"}), 400
+            current_path = current_path.parent.resolve()
         
         items = []
         print(f"Listando arquivos em: {current_path}")
@@ -297,9 +309,33 @@ def process_video_thread(video_file, output_dir, config):
 
 def main():
     load_env()
-    print("🚀 Iniciando servidor web...")
-    print("📱 Abra seu navegador em: http://localhost:5000")
-    app.run(debug=False, host='127.0.0.1', port=5000, threaded=True)
+    
+    # Configuração do servidor
+    host = '127.0.0.1'
+    port = 5000
+    url = f'http://{host}:{port}'
+    
+    print("\n" + "="*70)
+    print("🚀 WHISPER VIDEO CAPTIONING - SERVIDOR INICIADO")
+    print("="*70)
+    print(f"📱 Interface disponível em: {url}")
+    print("="*70 + "\n")
+    
+    # Abre navegador automaticamente em uma thread separada
+    def open_browser():
+        time.sleep(2)  # Aguarda o servidor iniciar
+        try:
+            print(f"🌐 Abrindo navegador em: {url}")
+            webbrowser.open(url)
+        except Exception as e:
+            print(f"⚠️ Não foi possível abrir navegador automaticamente: {e}")
+            print(f"   Abra manualmente em: {url}")
+    
+    browser_thread = threading.Thread(target=open_browser, daemon=True)
+    browser_thread.start()
+    
+    # Inicia servidor
+    app.run(debug=False, host=host, port=port, threaded=True)
 
 
 if __name__ == "__main__":
