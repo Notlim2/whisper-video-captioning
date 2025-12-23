@@ -20,7 +20,7 @@ TARGET_SAMPLE_RATE = 16000  # Whisper works best at 16kHz
 AUDIO_NORMALIZATION = True  # Normalize audio levels for better recognition
 
 # Other constants
-MAX_AUDIO_LENGTH = 300  # Maximum audio length in seconds for processing
+MAX_AUDIO_LENGTH = 30  # Maximum audio length in seconds for processing
 SUBTITLE_FORMAT = "srt"  # Default subtitle format to save as
 
 # Logging settings

@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper Video Captioning - pt-BR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            margin-right: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="range"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .range-container input[type="range"] {
+            flex: 1;
+        }
+
+        .range-value {
+            min-width: 60px;
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .file-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .file-input-group input {
+            flex: 1;
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        .file-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: #fafbff;
+        }
+
+        .file-btn {
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .file-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .file-btn:active {
+            transform: translateY(0);
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.5;
+            border: 1px solid #333;
+        }
+
+        .log-line {
+            margin: 3px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .status-icon {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-icon.idle {
+            background: #999;
+        }
+
+        .status-icon.processing {
+            background: #ff9800;
+            animation: blink 1s infinite;
+        }
+
+        .status-icon.success {
+            background: #4caf50;
+        }
+
+        .status-icon.error {
+            background: #f44336;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .error-message {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        /* File Browser Modal */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: #f5f5f5;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.3em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-btn:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .breadcrumb {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            word-break: break-all;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .file-browser {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .browser-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .browser-item:hover {
+            background: #f0f0f0;
+        }
+
+        .browser-item.selected {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .browser-item.dir {
+            color: #1976d2;
+            font-weight: 500;
+        }
+
+        .browser-item.video {
+            color: #666;
+        }
+
+        .browser-icon {
+            font-size: 1.2em;
+            min-width: 20px;
+        }
+
+        .browser-item-name {
+            flex: 1;
+        }
+
+        .browser-item-info {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-footer button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .modal-footer button:hover {
+            background: #f0f0f0;
+        }
+
+        .modal-footer button.select-btn {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .modal-footer button.select-btn:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Whisper Video Captioning</h1>
+            <p>Legendagem automática de vídeos em português brasileiro</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <!-- SEÇÃO 1: SELEÇÃO DE VÍDEO -->
+        <div class="section">
+            <div class="section-title">1. Selecionar Vídeo</div>
+            <div class="form-group">
+                <label for="videoFile">Arquivo de Vídeo:</label>
+                <div class="file-input-group">
+                    <input type="text" id="videoFile" placeholder="/caminho/completo/para/video.mp4">
+                    <button class="file-btn" onclick="showFileBrowser('video')">📁 Procurar</button>
+                </div>
+                <div class="info-text">Clique em "Procurar" para navegar pelo sistema de arquivos</div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 2: DIRETÓRIO DE SAÍDA -->
+        <div class="section">
+            <div class="section-title">2. Diretório de Saída</div>
+            <div class="form-group">
+                <label for="outputDir">Pasta de Saída:</label>
+                <div class="file-input-group">
+                    <input type="text" id="outputDir" placeholder="/caminho/completo/para/pasta">
+                    <button class="file-btn" onclick="showFileBrowser('output')">📁 Procurar Pasta</button>
+                </div>
+                <div class="info-text">Local onde o arquivo .srt será salvo</div>
+            </div>
+        </div>
+
+        <!-- MODAL: FILE BROWSER -->
+        <div id="fileBrowserModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Navegador de Arquivos</h2>
+                    <button class="close-btn" onclick="closeFileBrowser()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="breadcrumb" id="breadcrumb"></div>
+                    <div class="file-browser" id="fileBrowser"></div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="closeFileBrowser()">Cancelar</button>
+                    <button class="select-btn" onclick="selectCurrentPath()" id="selectPathBtn">Selecionar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3: CONFIGURAÇÕES -->
+        <div class="section">
+            <div class="section-title">3. Configurações do Whisper</div>
+            
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="model">Modelo:</label>
+                    <select id="model">
+                        <option value="tiny">Tiny (39MB - Mais rápido)</option>
+                        <option value="base" selected>Base (140MB - Padrão)</option>
+                        <option value="small">Small (244MB - Melhor)</option>
+                        <option value="medium">Medium (1.5GB - Muito bom)</option>
+                        <option value="large">Large (2.9GB - Melhor qualidade)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="language">Idioma:</label>
+                    <select id="language">
+                        <option value="pt" selected>Português (pt)</option>
+                        <option value="en">Inglês (en)</option>
+                        <option value="es">Espanhol (es)</option>
+                        <option value="fr">Francês (fr)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Beam Size (Precisão):</label>
+                <div class="range-container">
+                    <input type="range" id="beamSize" min="1" max="10" value="5" oninput="updateRangeValue(this)">
+                    <div class="range-value" id="beamSizeValue">5</div>
+                </div>
+                <div class="info-text">Maior = melhor qualidade, mas mais lento</div>
+            </div>
+
+            <div class="form-group">
+                <label>Best Of (Qualidade):</label>
+                <div class="range-container">
+                    <input type="range" id="bestOf" min="1" max="10" value="5" oninput="updateRangeValue(this)">
+                    <div class="range-value" id="bestOfValue">5</div>
+                </div>
+                <div class="info-text">Número de candidatos a considerar</div>
+            </div>
+
+            <div class="form-group">
+                <label>Temperatura (Aleatoriedade):</label>
+                <div class="range-container">
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0" oninput="updateRangeValue(this)">
+                    <div class="range-value" id="temperatureValue">0.0</div>
+                </div>
+                <div class="info-text">0 = determinístico, maior = mais variável</div>
+            </div>
+
+            <div class="form-group">
+                <label for="maxAudioLength">Tamanho Máximo do Áudio (segundos):</label>
+                <div class="range-container">
+                    <input type="range" id="maxAudioLength" min="10" max="60" step="1" value="30" oninput="updateRangeValue(this)">
+                    <div class="range-value" id="maxAudioLengthValue">30s</div>
+                </div>
+                <div class="info-text">Máximo de segundos de áudio a processar. Valores maiores = processamento mais lento</div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 4: PROCESSAMENTO -->
+        <div class="section">
+            <div class="section-title">
+                <span class="status-icon idle" id="statusIcon"></span>
+                <span id="statusText">Pronto</span>
+            </div>
+            
+            <div id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div class="log-container" id="logContainer">
+                <div class="log-line">Aguardando ação...</div>
+            </div>
+        </div>
+
+        <!-- BOTÕES -->
+        <div class="button-group">
+            <button class="btn-primary" id="processBtn" onclick="processVideo()">
+                ▶ Processar
+            </button>
+            <button class="btn-secondary" onclick="clearLog()">🗑️ Limpar Log</button>
+            <button class="btn-secondary" onclick="window.location.reload()">🔄 Atualizar</button>
+        </div>
+    </div>
+
+    <script>
+        // Função auxiliar para atualizar labels dos sliders
+        function updateRangeValue(input) {
+            const valueId = input.id + 'Value';
+            let value = input.value;
+            
+            if (input.id === 'temperature') {
+                value = parseFloat(value).toFixed(1);
+            } else if (input.id === 'maxAudioLength') {
+                const seconds = parseInt(value);
+                const minutes = Math.floor(seconds / 60);
+                value = `${seconds}s (${minutes} min)`;
+            }
+            
+            document.getElementById(valueId).textContent = value;
+        }
+
+        function addLog(message) {
+            const logContainer = document.getElementById('logContainer');
+            const logLine = document.createElement('div');
+            logLine.className = 'log-line';
+            logLine.textContent = message;
+            logContainer.appendChild(logLine);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLog() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '<div class="log-line">Log limpo</div>';
+        }
+
+        async function processVideo() {
+            const videoFile = document.getElementById('videoFile').value;
+            const outputDir = document.getElementById('outputDir').value;
+
+            if (!videoFile) {
+                alert('Por favor, selecione um arquivo de vídeo!');
+                return;
+            }
+
+            if (!outputDir) {
+                alert('Por favor, selecione um diretório de saída!');
+                return;
+            }
+
+            clearLog();
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('statusIcon').className = 'status-icon processing';
+            document.getElementById('statusText').textContent = 'Processando...';
+            document.getElementById('processBtn').disabled = true;
+
+            const config = {
+                model: document.getElementById('model').value,
+                language: document.getElementById('language').value,
+                beam_size: parseInt(document.getElementById('beamSize').value),
+                best_of: parseInt(document.getElementById('bestOf').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                max_audio_length: parseInt(document.getElementById('maxAudioLength').value),
+            };
+
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_file: videoFile,
+                        output_dir: outputDir,
+                        config: config
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao iniciar processamento');
+                }
+
+                // Poll para status
+                await pollStatus();
+
+            } catch (error) {
+                addLog(`❌ Erro: ${error.message}`);
+                document.getElementById('statusIcon').className = 'status-icon error';
+                document.getElementById('statusText').textContent = 'Erro';
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('processBtn').disabled = false;
+            }
+        }
+
+        async function pollStatus() {
+            const maxAttempts = 600; // 10 minutos com polling a cada 1 segundo
+            let attempts = 0;
+
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch('/api/status');
+                    const status = await response.json();
+
+                    // Atualiza log
+                    const logContainer = document.getElementById('logContainer');
+                    const logLines = logContainer.querySelectorAll('.log-line');
+                    const lastIndex = logLines.length;
+
+                    if (status.progress.length > lastIndex) {
+                        for (let i = lastIndex; i < status.progress.length; i++) {
+                            addLog(status.progress[i]);
+                        }
+                    }
+
+                    if (!status.is_processing) {
+                        document.getElementById('progressContainer').style.display = 'none';
+                        document.getElementById('statusIcon').className = 'status-icon success';
+                        document.getElementById('statusText').textContent = 'Concluído';
+                        document.getElementById('processBtn').disabled = false;
+                        
+                        if (status.progress.some(line => line.includes('ERRO'))) {
+                            document.getElementById('statusIcon').className = 'status-icon error';
+                            document.getElementById('statusText').textContent = 'Erro';
+                        }
+                        break;
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao verificar status:', error);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                attempts++;
+            }
+        }
+
+        // Carrega configurações ao iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('Interface carregada. Pronto para processar.');
+            document.getElementById('outputDir').value = '/home/milton/Downloads';
+        });
+
+        // ===== FILE BROWSER FUNCTIONS =====
+        let fileBrowserMode = 'video';
+        let fileBrowserCurrentPath = '/home';
+        let fileBrowserSelectedPath = '';
+
+        async function showFileBrowser(mode) {
+            console.log('showFileBrowser chamado com mode:', mode);
+            fileBrowserMode = mode;
+            
+            // Determina o caminho inicial
+            let startPath = '/home/milton';
+            if (mode === 'video') {
+                const currentVideo = document.getElementById('videoFile').value;
+                if (currentVideo && currentVideo.includes('/')) {
+                    startPath = currentVideo.substring(0, currentVideo.lastIndexOf('/'));
+                }
+            } else {
+                const currentOutput = document.getElementById('outputDir').value;
+                if (currentOutput && currentOutput.trim()) {
+                    startPath = currentOutput;
+                }
+            }
+            
+            fileBrowserCurrentPath = startPath;
+            
+            // Navega para o caminho
+            console.log('Chamando browsePath com:', startPath);
+            await browsePath(startPath);
+            
+            // Mostra o modal
+            const modal = document.getElementById('fileBrowserModal');
+            if (modal) {
+                modal.classList.add('show');
+                modal.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function closeFileBrowser() {
+            const modal = document.getElementById('fileBrowserModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        async function browsePath(path) {
+            console.log('browsePath chamado com path:', path);
+            try {
+                addLog(`🔍 Navegando para: ${path}`);
+                
+                const payload = { path: path };
+                console.log('Enviando payload:', JSON.stringify(payload));
+                
+                const response = await fetch('/api/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('Resposta recebida, status:', response.status);
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Erro na resposta:', text);
+                    try {
+                        const errorData = JSON.parse(text);
+                        addLog(`❌ Erro ${response.status}: ${errorData.error || 'Erro desconhecido'}`);
+                    } catch (e) {
+                        addLog(`❌ Erro ${response.status}: ${text}`);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('JSON parseado:', data);
+                
+                if (data.error) {
+                    addLog(`❌ Erro: ${data.error}`);
+                    return;
+                }
+                
+                fileBrowserCurrentPath = data.current_path;
+                updateBreadcrumb(data.current_path, data.parent_path);
+                updateFileBrowser(data.items, data.current_path);
+                addLog(`✓ ${data.items.length} itens encontrados`);
+                
+            } catch (error) {
+                console.error('Erro em browsePath:', error);
+                addLog(`❌ Erro ao buscar arquivos: ${error.message}`);
+            }
+        }
+
+        function updateBreadcrumb(currentPath, parentPath) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const parts = currentPath.split('/').filter(p => p);
+            
+            let html = '<strong>📍 Localização:</strong> ';
+            html += `<span onclick="browsePath('/')">raiz</span>`;
+            
+            let path = '';
+            for (const part of parts) {
+                path += '/' + part;
+                html += ` / <span onclick="browsePath('${path}')">${part}</span>`;
+            }
+            
+            html += `<br><small>${currentPath}</small>`;
+            breadcrumb.innerHTML = html;
+            
+            // Destacar spans como links
+            breadcrumb.querySelectorAll('span').forEach(span => {
+                span.style.cursor = 'pointer';
+                span.style.color = '#667eea';
+                span.onmouseover = () => span.style.textDecoration = 'underline';
+                span.onmouseout = () => span.style.textDecoration = 'none';
+            });
+        }
+
+        function updateFileBrowser(items, currentPath) {
+            console.log('updateFileBrowser chamado com', items.length, 'itens');
+            const browser = document.getElementById('fileBrowser');
+            
+            if (!browser) {
+                console.error('Elemento #fileBrowser não encontrado!');
+                return;
+            }
+            
+            if (!items || items.length === 0) {
+                console.log('Nenhum item para exibir');
+                browser.innerHTML = '<div class="browser-item" style="cursor: default; color: #f44336;">⚠️ Erro ao listar arquivos</div>';
+                return;
+            }
+
+            let html = '';
+            
+            // Para modo vídeo, mostrar apenas vídeos e pastas
+            // Para modo output, mostrar apenas diretórios
+            const filteredItems = items.filter(item => {
+                if (fileBrowserMode === 'video') {
+                    return item.type === 'dir' || item.type === 'video';
+                } else {
+                    return item.type === 'dir';
+                }
+            });
+
+            console.log('Itens filtrados:', filteredItems.length);
+
+            if (filteredItems.length === 0) {
+                if (fileBrowserMode === 'video') {
+                    browser.innerHTML = '<div class="browser-item" style="cursor: default; color: #999;">📭 Nenhum vídeo encontrado<br><small>Navegue para uma pasta com arquivos de vídeo</small></div>';
+                } else {
+                    browser.innerHTML = '<div class="browser-item" style="cursor: default; color: #999;">📭 Nenhuma pasta encontrada</div>';
+                }
+                return;
+            }
+
+            for (const item of filteredItems) {
+                const icon = item.type === 'dir' ? '📁' : '🎬';
+                const infoText = item.size ? ` (${item.size})` : '';
+                const safePath = String(item.path).replace(/'/g, "\\'");
+                
+                html += `<div class="browser-item ${item.type}" style="cursor: pointer;" onclick="handleItemClick('${safePath}', '${item.type}')">
+                    <span class="browser-icon">${icon}</span>
+                    <span class="browser-item-name">${item.name}</span>
+                    <span class="browser-item-info">${infoText}</span>
+                </div>`;
+            }
+
+            console.log('Renderizando', html.length, 'caracteres');
+            browser.innerHTML = html;
+            console.log('Conteúdo renderizado com sucesso');
+        }
+
+        let lastClickPath = null;
+        let lastClickTime = 0;
+
+        function handleItemClick(path, type) {
+            const now = Date.now();
+            const isDoubleClick = (path === lastClickPath && now - lastClickTime < 300);
+            
+            lastClickPath = path;
+            lastClickTime = now;
+            
+            if (type === 'dir') {
+                if (isDoubleClick) {
+                    // Duplo clique: entrar no diretório
+                    browsePath(path);
+                } else {
+                    // Clique único: apenas selecionar
+                    fileBrowserSelectedPath = path;
+                }
+            } else if (type === 'video') {
+                // Vídeo selecionado - aceitar e fechar
+                fileBrowserSelectedPath = path;
+                selectCurrentPath();
+            }
+        }
+
+        function selectCurrentPath() {
+            if (fileBrowserMode === 'video') {
+                if (!fileBrowserSelectedPath) {
+                    addLog('⚠️ Por favor, selecione um arquivo de vídeo');
+                    return;
+                }
+                const pathToSelect = fileBrowserSelectedPath;
+                document.getElementById('videoFile').value = pathToSelect;
+                addLog(`✓ Vídeo selecionado: ${pathToSelect.split('/').pop()}`);
+            } else if (fileBrowserMode === 'output') {
+                if (!fileBrowserCurrentPath) {
+                    addLog('⚠️ Por favor, selecione um diretório de saída');
+                    return;
+                }
+                const pathToSelect = fileBrowserCurrentPath;
+                document.getElementById('outputDir').value = pathToSelect;
+                addLog(`✓ Diretório selecionado: ${pathToSelect.split('/').pop()}`);
+            }
+
+            closeFileBrowser();
+            fileBrowserSelectedPath = '';
+        }
+
+        // Close modal quando clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('fileBrowserModal');
+            if (event.target == modal) {
+                closeFileBrowser();
+            }
+        }
+    </script>
+</body>
+</html>
