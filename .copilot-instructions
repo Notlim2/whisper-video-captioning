@@ -1,0 +1,214 @@
+# 🤖 Instruções para GitHub Copilot
+
+## 📋 REGRA GLOBAL (MAIS IMPORTANTE)
+❌ **Nunca inclua documentações desnecessárias**
+- Sem comentários óbvios que repetem o código
+- Sem docstrings triviais
+- Sem arquivos .md redundantes
+- Sem logs verbosos desnecessários
+- Código fala por si, minimize comentários
+
+✅ **Documentação apenas quando:**
+- Lógica complexa (> 5 linhas não óbvias)
+- Algoritmos especiais ou heurísticas
+- Avisos de performance ou segurança
+- Exemplos de uso em APIs públicas
+
+---
+
+## 🎯 Padrões Gerais de Código
+
+### Paths e Arquivos
+```python
+# ✅ BOM - Compatível Windows/Linux
+from pathlib import Path
+caminho = Path(arquivo).expanduser().resolve()
+
+# ❌ RUIM - Não normaliza
+caminho = arquivo  # Pode quebrar no Windows
+```
+
+### Tratamento de Erros
+```python
+# ✅ CONCISO - Sem logs óbvios
+try:
+    resultado = processar(arquivo)
+except Exception as e:
+    return {"error": str(e)}, 500
+
+# ❌ VERBOSO - Documentação excessiva
+try:
+    # Tenta processar o arquivo que foi enviado
+    resultado = processar(arquivo)  # Processa
+except Exception as e:
+    # Se der erro, retorna JSON com erro
+    return {"error": str(e)}, 500  # Retorna
+```
+
+### Funções
+```python
+# ✅ CLARO - Nomes descritivos, sem doc óbvia
+def validate_video_path(filepath: str) -> bool:
+    path = Path(filepath).expanduser().resolve()
+    return path.exists() and path.suffix in ['.mp4', '.avi']
+
+# ❌ VERBOSO - Documentação desnecessária
+def validate_video_path(filepath: str) -> bool:
+    """
+    Esta função valida o caminho do vídeo.
+    Ela recebe um caminho de arquivo como string.
+    Retorna True se válido, False senão.
+    """
+    path = Path(filepath).expanduser().resolve()
+    return path.exists() and path.suffix in ['.mp4', '.avi']
+```
+
+---
+
+## 🔧 Estilo Específico do Projeto
+
+### Idioma
+- ✅ Nomes de variáveis/funções: **Inglês**
+- ✅ Comentários e logs: **Português**
+- ✅ Strings de UI: **Português**
+
+### Python
+- Versão mínima: 3.8+
+- Type hints quando claramente útil
+- `pathlib.Path` ao invés de `os.path`
+- JSON para APIs
+- Threading para operações longas
+
+### Segurança
+- Sempre: `Path(...).expanduser().resolve()`
+- Validar entrada de usuário
+- Try/except em I/O
+- JSONs para erros
+
+---
+
+## 📝 Resumo: Quando Adicionar Comentários?
+
+| Situação | Adicionar? |
+|----------|-----------|
+| `x = 5` seguido de `for i in range(x)` | ❌ Óbvio |
+| Algoritmo de processamento de áudio | ✅ Sim |
+| API com parâmetros não óbvios | ✅ Sim |
+| Loop simples iterando lista | ❌ Óbvio |
+| Regex complexa | ✅ Sim |
+| `if x > 10:` | ❌ Óbvio |
+| Workaround para bug de Windows | ✅ Sim |
+
+**Dúvida?** → Não comente. Refatore para código mais claro.
+
+---
+
+## 🚀 Exemplos de Código Aceito
+
+### ✅ Video Processing
+```python
+def extract_audio(video_path: str) -> str:
+    """Extrai áudio do vídeo em WAV"""
+    video = VideoFileClip(video_path)
+    audio_path = video_path.replace('.mp4', '_audio.wav')
+    video.audio.write_audiofile(audio_path, verbose=False)
+    return audio_path
+```
+
+### ✅ API Endpoint
+```python
+@app.route('/api/browse', methods=['POST'])
+def browse_files():
+    try:
+        path = Path(request.json.get('path', str(Path.home()))).resolve()
+        if not path.exists():
+            path = Path.home()
+        
+        items = [
+            {
+                'name': item.name,
+                'path': str(item.resolve()),
+                'type': 'dir' if item.is_dir() else 'file'
+            }
+            for item in path.iterdir()
+        ]
+        return jsonify({'items': items, 'current': str(path)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+```
+
+### ✅ Logging Essencial
+```python
+def process():
+    add_log("1️⃣ Extraindo áudio...")
+    audio = extract_audio(video)
+    
+    add_log("2️⃣ Transcrevendo...")
+    text = transcribe(audio)
+    
+    add_log("✅ Concluído!")
+```
+
+---
+
+## ❌ Exemplos Rejeitados
+
+### ❌ Documentação Excessiva
+```python
+def add(a, b):
+    """
+    Adiciona dois números.
+    
+    Args:
+        a: Primeiro número
+        b: Segundo número
+    
+    Returns:
+        int: A soma de a e b
+    """
+    return a + b
+```
+
+### ❌ Comentários Óbvios
+```python
+# Itera sobre cada item
+for item in items:
+    # Printa o item
+    print(item)
+```
+
+### ❌ Muitos Arquivos de Documentação
+```
+docs/
+├── INSTRUCOES.md
+├── GUIA_RAPIDO.md
+├── TUTORIAL.md
+├── FAQ.md
+└── TROUBLESHOOTING.md
+```
+→ Consolidar em 1-2 arquivos máximo!
+
+---
+
+## 📌 Checklist para Novo Código
+
+- [ ] Nomes de funções descrevem o que fazem?
+- [ ] Código é auto-explicativo?
+- [ ] Apenas comentários para lógica não óbvia?
+- [ ] Sem docstrings triviais?
+- [ ] Sem arquivos de doc redundantes?
+- [ ] Windows/Linux compatible?
+- [ ] Error handling com try/except?
+- [ ] Sem logs verbosos?
+
+---
+
+## 🎯 Objetivo Final
+
+**Código limpo, conciso e sem ruído documental.**
+
+Quando em dúvida:
+1. Refatore para código mais claro
+2. Adicione comentário mínimo
+3. Delete comentários óbvios
+4. Consolide documentação dispersa

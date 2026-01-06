@@ -1,1 +1,14 @@
 venv/
+
+src/__pycache__/
+src/*.pyc
+src/*.pyo
+src/*.pyd
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+*.wav
+
+.vscode/

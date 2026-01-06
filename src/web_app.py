@@ -118,7 +118,7 @@ def browse_files():
                     if item.is_dir():
                         items.append({
                             'name': item.name,
-                            'path': str(item),
+                            'path': str(item.resolve()),  # Garante barra correta no Windows
                             'type': 'dir'
                         })
                     elif item.is_file():
@@ -130,7 +130,7 @@ def browse_files():
                                 size_mb = 0
                             items.append({
                                 'name': item.name,
-                                'path': str(item),
+                                'path': str(item.resolve()),  # Garante barra correta no Windows
                                 'type': 'video',
                                 'size': f'{size_mb:.2f}MB'
                             })
@@ -146,8 +146,8 @@ def browse_files():
         
         print(f"Encontrados {len(items)} itens")
         result = {
-            'current_path': str(current_path),
-            'parent_path': str(current_path.parent),
+            'current_path': str(current_path.resolve()),  # Garante barra correta
+            'parent_path': str(current_path.parent.resolve()),
             'items': items
         }
         print(f"Retornando: {result}")
