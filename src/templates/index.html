@@ -208,22 +208,37 @@
 
         .progress-bar {
             width: 100%;
-            height: 6px;
-            background: #ddd;
-            border-radius: 3px;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
             overflow: hidden;
             margin: 15px 0;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #667eea, #764ba2);
-            animation: pulse 1.5s infinite;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            position: relative;
         }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-weight: 600;
+            font-size: 13px;
+            z-index: 10;
+            line-height: 30px;
         }
 
         .button-group {
@@ -616,7 +631,8 @@
             
             <div id="progressContainer" style="display: none;">
                 <div class="progress-bar">
-                    <div class="progress-fill"></div>
+                    <div class="progress-text" id="progressText">0%</div>
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                 </div>
             </div>
 
@@ -636,6 +652,68 @@
     </div>
 
     <script>
+        // Função para atualizar barra de progresso
+        function updateProgressBar(message, forcePercent = null) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            if (!progressFill || !progressText) return;
+            
+            let percent = forcePercent;
+            
+            // Se não forçou porcentagem, calcula baseado na mensagem
+            if (percent === null) {
+                // Define etapas de processamento e suas porcentagens
+                const stages = {
+                    'Iniciando': 5,
+                    'Validando': 10,
+                    'Extraindo áudio': 20,
+                    'Carregando modelo': 30,
+                    'Transcrevendo': 60,
+                    'Gerando legendas': 80,
+                    'Salvando': 90,
+                    'Finalizado': 100,
+                    'Concluído': 100,
+                    'SUCESSO': 100
+                };
+                
+                // Procura por padrões na mensagem
+                for (const [stage, value] of Object.entries(stages)) {
+                    if (message.includes(stage)) {
+                        percent = value;
+                        break;
+                    }
+                }
+                
+                // Se não encontrou etapa específica, mantém valor atual
+                if (percent === null) {
+                    const currentWidth = progressFill.style.width;
+                    percent = parseInt(currentWidth) || 0;
+                }
+            }
+            
+            // Atualiza a barra
+            progressFill.style.width = `${percent}%`;
+            progressText.textContent = `${percent}%`;
+            
+            // Adiciona efeito de pulso quando está processando
+            if (percent > 0 && percent < 100) {
+                progressFill.style.animation = 'pulse 1.5s infinite';
+            } else {
+                progressFill.style.animation = 'none';
+            }
+        }
+        
+        // Animação de pulso para o progresso
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.8; }
+            }
+        `;
+        document.head.appendChild(style);
+        
         // Função auxiliar para atualizar labels dos sliders
         function updateRangeValue(input) {
             const valueId = input.id + 'Value';
@@ -682,6 +760,7 @@
 
             clearLog();
             document.getElementById('progressContainer').style.display = 'block';
+            updateProgressBar('Iniciando', 0);  // Reseta a barra de progresso
             document.getElementById('statusIcon').className = 'status-icon processing';
             document.getElementById('statusText').textContent = 'Processando...';
             document.getElementById('processBtn').disabled = true;
@@ -739,11 +818,16 @@
                     if (status.progress.length > lastIndex) {
                         for (let i = lastIndex; i < status.progress.length; i++) {
                             addLog(status.progress[i]);
+                            // Atualiza barra de progresso baseado nas mensagens
+                            updateProgressBar(status.progress[i]);
                         }
                     }
 
                     if (!status.is_processing) {
-                        document.getElementById('progressContainer').style.display = 'none';
+                        updateProgressBar('Concluído', 100);
+                        setTimeout(() => {
+                            document.getElementById('progressContainer').style.display = 'none';
+                        }, 2000);
                         document.getElementById('statusIcon').className = 'status-icon success';
                         document.getElementById('statusText').textContent = 'Concluído';
                         document.getElementById('processBtn').disabled = false;
@@ -767,24 +851,51 @@
         // Carrega configurações ao iniciar
         document.addEventListener('DOMContentLoaded', () => {
             addLog('Interface carregada. Pronto para processar.');
-            document.getElementById('outputDir').value = '/home/milton/Downloads';
+            
+            // Define pasta padrão baseada no sistema operacional
+            const isWindows = navigator.platform.toLowerCase().includes('win');
+            if (isWindows) {
+                // Usa a pasta Downloads do Windows
+                const username = window.location.hostname === 'localhost' ? 'Milton' : 'User';
+                document.getElementById('outputDir').value = `C:\\Users\\${username}\\Downloads`;
+            } else {
+                // Linux/Mac
+                document.getElementById('outputDir').value = '/home/milton/Downloads';
+            }
         });
 
         // ===== FILE BROWSER FUNCTIONS =====
         let fileBrowserMode = 'video';
-        let fileBrowserCurrentPath = '/home';
+        // Detecta o sistema operacional e define caminho inicial
+        const isWindows = navigator.platform.toLowerCase().includes('win');
+        const defaultUserPath = isWindows ? 'C:\\Users\\Milton' : '/home/milton';
+        let fileBrowserCurrentPath = defaultUserPath;
         let fileBrowserSelectedPath = '';
 
         async function showFileBrowser(mode) {
             console.log('showFileBrowser chamado com mode:', mode);
             fileBrowserMode = mode;
             
+            // Configura o botão de seleção baseado no modo
+            const selectBtn = document.getElementById('selectPathBtn');
+            if (selectBtn) {
+                if (mode === 'video') {
+                    selectBtn.textContent = 'Selecionar Vídeo';
+                    selectBtn.style.display = 'none';  // Vídeos são selecionados com clique direto
+                } else {
+                    selectBtn.textContent = 'Selecionar Esta Pasta';
+                    selectBtn.style.display = 'inline-block';
+                }
+            }
+            
             // Determina o caminho inicial
-            let startPath = '/home/milton';
+            let startPath = defaultUserPath;  // Usa o caminho padrão definido
             if (mode === 'video') {
                 const currentVideo = document.getElementById('videoFile').value;
-                if (currentVideo && currentVideo.includes('/')) {
-                    startPath = currentVideo.substring(0, currentVideo.lastIndexOf('/'));
+                if (currentVideo && currentVideo.trim()) {
+                    // Detecta separador correto
+                    const separator = currentVideo.includes('\\') ? '\\' : '/';
+                    startPath = currentVideo.substring(0, currentVideo.lastIndexOf(separator));
                 }
             } else {
                 const currentOutput = document.getElementById('outputDir').value;
@@ -815,7 +926,12 @@
         }
 
         async function browsePath(path) {
-            console.log('browsePath chamado com path:', path);
+            console.log('=== browsePath INICIO ===');
+            console.log('Path recebido:', path);
+            console.log('Tipo:', typeof path);
+            console.log('Tem barras invertidas?', path.includes('\\'));
+            console.log('Path length:', path.length);
+            
             try {
                 addLog(`🔍 Navegando para: ${path}`);
                 
@@ -843,7 +959,14 @@
                 }
 
                 const data = await response.json();
-                console.log('JSON parseado:', data);
+                console.log('=== RESPOSTA DO SERVIDOR ===');
+                console.log('data.current_path:', data.current_path);
+                console.log('data.current_path tem barras invertidas?', data.current_path.includes('\\'));
+                console.log('data.items.length:', data.items.length);
+                if (data.items.length > 0) {
+                    console.log('Primeiro item path:', data.items[0].path);
+                    console.log('Primeiro item path tem barras?', data.items[0].path.includes('\\'));
+                }
                 
                 if (data.error) {
                     addLog(`❌ Erro: ${data.error}`);
@@ -851,6 +974,7 @@
                 }
                 
                 fileBrowserCurrentPath = data.current_path;
+                console.log('fileBrowserCurrentPath atualizado para:', fileBrowserCurrentPath);
                 updateBreadcrumb(data.current_path, data.parent_path);
                 updateFileBrowser(data.items, data.current_path);
                 addLog(`✓ ${data.items.length} itens encontrados`);
@@ -863,18 +987,24 @@
 
         function updateBreadcrumb(currentPath, parentPath) {
             const breadcrumb = document.getElementById('breadcrumb');
-            const parts = currentPath.split('/').filter(p => p);
+            // Detecta o separador do sistema (Windows usa \ ou /)
+            const separator = currentPath.includes('\\') ? '\\' : '/';
+            const parts = currentPath.split(separator).filter(p => p);
             
             let html = '<strong>📍 Localização:</strong> ';
-            html += `<span onclick="browsePath('/')">raiz</span>`;
             
-            let path = '';
-            for (const part of parts) {
-                path += '/' + part;
-                html += ` / <span onclick="browsePath('${path}')">${part}</span>`;
+            // Para Windows, mostrar apenas o caminho completo sem navegação
+            if (separator === '\\') {
+                html += `${currentPath}`;
+            } else {
+                html += `<span onclick="browsePath('/')">raiz</span>`;
+                let path = '';
+                for (const part of parts) {
+                    path += '/' + part;
+                    html += ` / <span onclick="browsePath('${path}')">${part}</span>`;
+                }
             }
             
-            html += `<br><small>${currentPath}</small>`;
             breadcrumb.innerHTML = html;
             
             // Destacar spans como links
@@ -901,7 +1031,8 @@
                 return;
             }
 
-            let html = '';
+            // Limpa o conteúdo anterior
+            browser.innerHTML = '';
             
             // Para modo vídeo, mostrar apenas vídeos e pastas
             // Para modo output, mostrar apenas diretórios
@@ -927,17 +1058,28 @@
             for (const item of filteredItems) {
                 const icon = item.type === 'dir' ? '📁' : '🎬';
                 const infoText = item.size ? ` (${item.size})` : '';
-                const safePath = String(item.path).replace(/'/g, "\\'");
                 
-                html += `<div class="browser-item ${item.type}" style="cursor: pointer;" onclick="handleItemClick('${safePath}', '${item.type}')">
+                // Cria o elemento diretamente para evitar problemas com escape de barras invertidas
+                const div = document.createElement('div');
+                div.className = `browser-item ${item.type}`;
+                div.style.cursor = 'pointer';
+                div.dataset.path = item.path;  // Armazena o caminho completo no data attribute
+                div.dataset.type = item.type;
+                
+                div.innerHTML = `
                     <span class="browser-icon">${icon}</span>
                     <span class="browser-item-name">${item.name}</span>
                     <span class="browser-item-info">${infoText}</span>
-                </div>`;
+                `;
+                
+                // Adiciona event listener diretamente
+                div.addEventListener('click', function() {
+                    handleItemClick(this.dataset.path, this.dataset.type);
+                });
+                
+                browser.appendChild(div);
             }
 
-            console.log('Renderizando', html.length, 'caracteres');
-            browser.innerHTML = html;
             console.log('Conteúdo renderizado com sucesso');
         }
 
@@ -945,44 +1087,56 @@
         let lastClickTime = 0;
 
         function handleItemClick(path, type) {
-            const now = Date.now();
-            const isDoubleClick = (path === lastClickPath && now - lastClickTime < 300);
-            
-            lastClickPath = path;
-            lastClickTime = now;
+            // Debug: mostra o caminho recebido
+            console.log('=== handleItemClick ===');
+            console.log('Path recebido:', path);
+            console.log('Type:', type);
+            console.log('Tem barras invertidas?', path.includes('\\'));
             
             if (type === 'dir') {
-                if (isDoubleClick) {
-                    // Duplo clique: entrar no diretório
-                    browsePath(path);
-                } else {
-                    // Clique único: apenas selecionar
-                    fileBrowserSelectedPath = path;
-                }
+                // Clique único: entrar no diretório IMEDIATAMENTE
+                console.log('Navegando para diretório:', path);
+                browsePath(path);
             } else if (type === 'video') {
                 // Vídeo selecionado - aceitar e fechar
+                console.log('Vídeo selecionado:', path);
                 fileBrowserSelectedPath = path;
                 selectCurrentPath();
             }
         }
 
         function selectCurrentPath() {
+            console.log('=== selectCurrentPath chamado ===');
+            console.log('Mode:', fileBrowserMode);
+            console.log('Current Path:', fileBrowserCurrentPath);
+            console.log('Selected Path:', fileBrowserSelectedPath);
+            
             if (fileBrowserMode === 'video') {
                 if (!fileBrowserSelectedPath) {
                     addLog('⚠️ Por favor, selecione um arquivo de vídeo');
                     return;
                 }
                 const pathToSelect = fileBrowserSelectedPath;
+                console.log('Definindo vídeo:', pathToSelect);
                 document.getElementById('videoFile').value = pathToSelect;
-                addLog(`✓ Vídeo selecionado: ${pathToSelect.split('/').pop()}`);
+                // Detecta o separador correto (Windows ou Unix)
+                const separator = pathToSelect.includes('\\') ? '\\' : '/';
+                const filename = pathToSelect.split(separator).pop();
+                addLog(`✓ Vídeo selecionado: ${filename}`);
+                console.log('Campo videoFile atualizado para:', document.getElementById('videoFile').value);
             } else if (fileBrowserMode === 'output') {
                 if (!fileBrowserCurrentPath) {
-                    addLog('⚠️ Por favor, selecione um diretório de saída');
+                    addLog('⚠️ Por favor, navegue até o diretório de saída desejado');
                     return;
                 }
                 const pathToSelect = fileBrowserCurrentPath;
+                console.log('Definindo output:', pathToSelect);
                 document.getElementById('outputDir').value = pathToSelect;
-                addLog(`✓ Diretório selecionado: ${pathToSelect.split('/').pop()}`);
+                // Detecta o separador correto (Windows ou Unix)
+                const separator = pathToSelect.includes('\\') ? '\\' : '/';
+                const dirname = pathToSelect.split(separator).pop();
+                addLog(`✓ Diretório selecionado: ${dirname}`);
+                console.log('Campo outputDir atualizado para:', document.getElementById('outputDir').value);
             }
 
             closeFileBrowser();

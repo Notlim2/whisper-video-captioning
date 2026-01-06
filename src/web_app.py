@@ -18,6 +18,15 @@ from utils import load_env, validate_file
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Desabilita cache
+
+# Adiciona headers para desabilitar cache
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 # Carrega configurações
 try:
