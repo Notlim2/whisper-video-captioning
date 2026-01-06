@@ -12,3 +12,11 @@ __pycache__/
 *.wav
 
 .vscode/
+nul
+
+# Build artifacts
+/dist/
+/build/
+*.spec
+*.exe
+*.pkg
