@@ -7,7 +7,9 @@ class VideoProcessor:
         import subprocess
         from pathlib import Path
         
-        audio_file = Path(self.video_file).stem + ".wav"
+        # Coloca o arquivo de áudio no mesmo diretório do vídeo
+        video_path = Path(self.video_file)
+        audio_file = str(video_path.parent / (video_path.stem + ".wav"))
         
         try:
             # Remove arquivo anterior se existir
@@ -26,12 +28,16 @@ class VideoProcessor:
             if result.returncode != 0:
                 # Fallback sem normalização se loudnorm falhar
                 print("Tentando sem normalização avançada...")
-                subprocess.run([
-                    "ffmpeg", "-i", self.video_file, 
-                    "-vn", "-acodec", "pcm_s16le", "-ar", "16000",
-                    "-ac", "1", "-af", "volume=1.2",
-                    "-y", audio_file
-                ], check=True, capture_output=True, text=True)
+                try:
+                    subprocess.run([
+                        "ffmpeg", "-i", self.video_file, 
+                        "-vn", "-acodec", "pcm_s16le", "-ar", "16000",
+                        "-ac", "1", "-af", "volume=1.2",
+                        "-y", audio_file
+                    ], check=True, capture_output=True, text=True)
+                except subprocess.CalledProcessError as fallback_error:
+                    print(f"✗ Erro ao extrair áudio (fallback): {fallback_error.stderr}")
+                    raise Exception(f"Falha ao extrair áudio do vídeo: {fallback_error.stderr if fallback_error.stderr else str(fallback_error)}")
             
             print(f"✓ Áudio extraído: {audio_file}")
             return audio_file

@@ -300,6 +300,16 @@ class WhisperGUI:
                 self.log("✗ Arquivo de vídeo inválido!")
                 return
             
+            # Validar diretório de saída
+            output_dir_path = Path(output_dir)
+            if not output_dir_path.exists():
+                self.log(f"✗ Diretório de saída inválido: {output_dir}")
+                return
+            
+            if not output_dir_path.is_dir():
+                self.log(f"✗ Caminho de saída não é um diretório: {output_dir}")
+                return
+            
             self.log("\n" + "="*60)
             self.log("INICIANDO PROCESSAMENTO")
             self.log("="*60)
@@ -354,8 +364,11 @@ class WhisperGUI:
             )
         
         except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
             self.log(f"\n❌ ERRO: {str(e)}")
-            messagebox.showerror("Erro", f"Erro durante o processamento:\n{str(e)}")
+            self.log(f"\nDetalhes:\n{error_details}")
+            messagebox.showerror("Erro", f"Erro durante o processamento:\n{str(e)}\n\nVeja o log para mais detalhes.")
         
         finally:
             self.is_processing = False
